@@ -1,18 +1,17 @@
-import keras as keras
 from keras.models import Model
 from keras.layers import Input, Dense, Activation,Flatten, Conv2D, Flatten, Dropout, MaxPooling2D, AveragePooling2D
 from keras import optimizers
 from keras.initializers import glorot_uniform
-import keras.backend as K
-from keras import callbacks
+from keras.callbacks import TensorBoard
+from tensorflow.python.lib.io import file_io
 
-import tensorflow as tf
+import keras.backend as K
 K.set_image_data_format('channels_last')
+
 import numpy as np
 import pandas as pd
 import argparse
 import os
-from tensorflow.python.lib.io import file_io
 
 def get_args() :
 
@@ -88,7 +87,7 @@ def train_model(args):
     keras_model = create_keras_model(input_shape=(28, 28, 1), learning_rate=args.learning_rate)
 
     # Setup TensorBoard callback.
-    #tensorboard_cb = tf.keras.callbacks.TensorBoard(os.path.join(args.job_dir, 'keras_tensorboard'), histogram_freq=1)
+    tensorboard_cb = TensorBoard(log_dir=os.path.join(args.job_dir, 'keras_tensorboard'), histogram_freq=1)
 
     print('Type of train_x =',type(train_x))
     print('Type of train_y =', type(train_y))
@@ -96,7 +95,7 @@ def train_model(args):
     print('Type of eval_y =', type(eval_y))
 
     # Train model
-    keras_model.fit(x=train_x, y=train_y, epochs=args.num_epochs, verbose=1, batch_size=args.batch_size, validation_data=(eval_x,eval_y))
+    keras_model.fit(x=train_x, y=train_y, epochs=args.num_epochs, verbose=1, batch_size=args.batch_size, validation_data=(eval_x,eval_y),callbacks=[tensorboard_cb])
 
     # Save keras model
     keras_model.save('model.h5')
