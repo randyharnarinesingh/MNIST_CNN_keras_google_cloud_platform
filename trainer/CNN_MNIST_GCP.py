@@ -26,10 +26,13 @@ def get_args() :
 
 def load_data() :
 
-  url = 'https://storage.googleapis.com/mnist-keras-on-cloud/train.csv' # link to GCP storage bucket link
-  print('Downloading file from URL...')
-  data = pd.read_csv(url).values
-  print('File downloaded!')
+  with file_io.FileIO(os.path.join(args.job_dir, 'train.csv'), mode='rb') as input_file :
+    with file_io.FileIO('train.csv', mode='wb+') as output_file :
+          output_file.write(input_file.read())
+          print("Downloaded file!")
+
+  data = pd.read_csv('train.csv').values
+  print('Loaded CSV file')
 
   X = data[:,1:data.shape[1]]
   y = data[:,0].reshape(42000,1) # produce y as row vector
@@ -101,9 +104,9 @@ def train_model(args):
     keras_model.save('model.h5')
 
     # Copy model.h5 over to Google Cloud Storage
-    with file_io.FileIO('model.h5', mode='rb') as input_f:
-        with file_io.FileIO(os.path.join(args.job_dir, 'model.h5'), mode='wb+') as output_f:
-            output_f.write(input_f.read())
+    with file_io.FileIO('model.h5', mode='rb') as infile:
+        with file_io.FileIO(os.path.join(args.job_dir, 'model.h5'), mode='wb+') as outfile:
+            outfile.write(infile.read())
             print("Saved model.h5 to GCS")
 
 if __name__ == "__main__":
