@@ -21,14 +21,22 @@ def get_args() :
     parser.add_argument('--batch-size',default=128,type=int,help='number of records to read during each training step, default=128')
     parser.add_argument('--learning-rate',default=.01,type=float,help='learning rate for gradient descent, default=.01')
     parser.add_argument('--verbosity',choices=['DEBUG', 'ERROR', 'FATAL', 'INFO', 'WARN'],default='INFO')
+    parser.add_argument('--mega-bytes',default=1,type=float,help='Number of MBs used for file handling')
     args, _ = parser.parse_known_args()
     return args
 
-def load_data() :
+def load_data(mega_bytes) :
 
   with file_io.FileIO(os.path.join(args.job_dir, 'train.csv'), mode='rb') as input_file :
     with file_io.FileIO('train.csv', mode='wb+') as output_file :
-          output_file.write(input_file.read())
+
+          byte_size = mega_bytes*1024*1024
+          f_contents = input_file.read(byte_size)
+
+          while len(f_contents) > 0 :
+              output_file.write(f_contents)
+              f_contents = input_file.read(byte_size)
+
           print("Downloaded file!")
 
   data = pd.read_csv('train.csv').values
@@ -80,7 +88,7 @@ def train_model(args):
 
     ##Setting up the path for saving logs
     logs_path = args.job_dir + 'logs/tensorboard'
-    train_x, train_y, eval_x, eval_y = load_data()
+    train_x, train_y, eval_x, eval_y = load_data(args.mega_bytes)
 
     # dimensions
     num_train_examples = train_x.shape[0]
@@ -106,7 +114,15 @@ def train_model(args):
     # Copy model.h5 over to Google Cloud Storage
     with file_io.FileIO('model.h5', mode='rb') as infile:
         with file_io.FileIO(os.path.join(args.job_dir, 'model.h5'), mode='wb+') as outfile:
-            outfile.write(infile.read())
+
+            byte_size = args.mega_bytes*1024*1024
+            f_contents = infile.read(byte_size)
+
+            while len(f_contents) > 0 :
+
+                outfile.write(f_contents)
+                f_contents = infile.read(byte_size)
+
             print("Saved model.h5 to GCS")
 
 if __name__ == "__main__":
